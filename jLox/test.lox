@@ -1,42 +1,11 @@
-// Recursion
-fun fib(n) {
-    if (n <= 1)
-        return n;
-    return fib(n - 1) + fib(n - 2);
-}
 
-print "-------- FIB ------------";
-var i = 0;
-while (i < 10) {
-    print fib(i);
-    i = i + 1;
-}
-
-i = 0;
-while (i < 10) {
-    print fib(i);
-    i = i + 1;
-}
-
-
-// Closure
-fun makeCounter() {
-    // In order to update this `i` variable within
-    // the `count` function, the function needs to
-    // store the declared variables when the function
-    // was declared. The environment in which these
-    // variables were declared when a function is declared
-    // is known as "closure".
-    var i = 0;
-    fun count() {
-        i = i + 1;
-        print i;
+class Cake {
+    taste() {
+        var adjective = "delicious";
+        print "The " + this.flavor + " cake is " + adjective + "!";
     }
-
-    return count;
 }
 
-print "--------- CLOSURE --------- ";
-var counter = makeCounter();
-counter();
-counter();
+var cake = Cake();
+cake.flavor = "German Chocolate";
+cake.taste();

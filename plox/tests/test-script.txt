@@ -1,44 +1,10 @@
-
-
-fun fib(n) {
-    if (n <= 1) {
-        return n;
+class Cake {
+    taste() {
+        var adjective = "delicious";
+        print("The " + this.flavor + " cake is " + adjective + "!");
     }
-
-    return fib(n - 1) + fib(n - 2);
 }
 
-fun fact(n) {
-    if (n <= 1) {
-        return 1;
-    }
-
-    return n * fact(n -1);
-}
-
-fun makeCounter() {
-    var i = 0;
-    fun count() {
-        i = i + 1;
-        return i;
-    }
-
-    return count;
-}
-
-
-//var counter = makeCounter();
-//print counter();
-//print counter();
-
-var i = 0;
-while (i < 10) {
-    print(fib(i));
-    i = i + 1;
-}
-
-
-print(fact(5));
-
-
-print("HELLO " + "World");
+var cake = Cake();
+cake.flavor = "German Chocolate";
+cake.taste();

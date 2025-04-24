@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 from dataclasses import dataclass
 from tokens import Token, TokenType
@@ -49,4 +50,3 @@ class Print(Stmt):
 class Class(Stmt):
     name: Token 
     methods: list[Function]
-    superclass: Variable 

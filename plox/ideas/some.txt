@@ -1,0 +1,22 @@
+// I don't know why, but I like the idea of
+// "`Some` type has no attribute `xyz`" instead
+// of "Null pointer exception".
+
+fun add_some(a, b) {
+    if (!(is_number(a) && is_number(b))) {
+        return None;
+    }
+
+    return Some(a + b);
+}
+
+
+fun main(){
+    val a_some = add_some(1, 2);
+
+    if is_none(a_some)
+        panic();
+
+    val a = unwrap(a_some);
+    print(a); // 3
+}

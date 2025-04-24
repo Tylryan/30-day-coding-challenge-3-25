@@ -24,6 +24,16 @@ def parse(tokens: list[Token]) -> list[Stmt]:
 
 
 # --------- Statements
+def declaration(parser: ParseState) -> Stmt:
+    if matches(parser, TokenType.VAR):
+        return varDeclaration(parser)
+    if matches(parser, TokenType.FUN):
+        return fun(parser)
+    if matches(parser, TokenType.CLASS):
+        return classDeclaration(parser)
+    
+    return statement(parser)
+
 def statement(parser: ParseState) -> Stmt:
     if matches(parser, TokenType.LEFT_BRACE):
         return Block(block(parser))
@@ -48,13 +58,18 @@ def block(parser: ParseState) -> list[Stmt]:
     consume(parser, TokenType.RIGHT_BRACE, "Expect '}' after block.")
     return statements
 
-def declaration(parser: ParseState) -> Stmt:
-    if matches(parser, TokenType.VAR):
-        return varDeclaration(parser)
-    if matches(parser, TokenType.FUN):
-        return fun(parser)
-    
-    return statement(parser)
+
+def classDeclaration(parser: ParseState) -> Stmt:
+    name: Token = consume(parser, TokenType.IDENTIFIER, "Expect class name.")
+    consume(parser, TokenType.LEFT_BRACE, "Expect '{' before class body.")
+
+    methods: list[Function] = []
+
+    while (not check(parser, TokenType.RIGHT_BRACE)) and (not isAtEnd(parser)):
+        methods.append(fun(parser))
+
+    consume(parser, TokenType.RIGHT_BRACE, "Expect '}' after class body.")
+    return Class(name, methods)
 
 def fun(parser: ParseState) -> Function:
     name: Token = consume(parser, TokenType.IDENTIFIER,
@@ -137,9 +152,13 @@ def assignment(parser: ParseState) -> Expr:
         # Right Associative
         value: Expr = assignment(parser)
 
+        # var a = value
         if isinstance(expr, Variable):
             name: Token = expr.name
             return Assign(name, value)
+        # class.field = value
+        elif isinstance(expr, Get):
+            return Set(expr.object, expr.name, value)
 
         print("[parser-error] invalid assignment target: `{expr}`")
         exit(1)
@@ -241,6 +260,10 @@ def call(parser: ParseState) -> Expr:
     while True:
         if matches(parser, TokenType.LEFT_PAREN):
             expr = finishCall(parser, expr)
+        elif matches(parser, TokenType.DOT):
+            name: Token = consume(parser, TokenType.IDENTIFIER,
+                                  "Expect property name after '.'.")
+            expr = Get(expr, name)
         else:
             break
 
@@ -253,6 +276,9 @@ def primary(parser: ParseState) -> Expr:
 
     if matches(parser, TokenType.NUMBER, TokenType.STRING):
         return Literal(previous(parser).literal)
+
+    if matches(parser, TokenType.THIS):
+        return This(previous(parser))
 
     if matches(parser, TokenType.IDENTIFIER):
         return Variable(previous(parser))

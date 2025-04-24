@@ -1,0 +1,24 @@
+var a = "Hello, World";
+
+internal {
+// Variables outside of the internal block
+// can be accessed within one.
+    fun helper() {
+        print(a);
+    }
+
+// Helper can be accessed within an
+// internal block.
+    fun helpers_helper() {
+        helper();
+    }
+}
+
+
+// Anything within an internal block
+// can be accessed within the same file.
+// Source code outside of this file cannot
+// access anything within the internal block
+// above.
+
+helper();  // "Hello, World"

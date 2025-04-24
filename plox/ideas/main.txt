@@ -1,0 +1,63 @@
+// Below are the basic features I have in mind for a "First Language".
+
+// FEATURE: Imports
+// Include would literally just load a file from anywhere making
+// sure not to include any one twice automatically...
+// Import would load a file within the project or language.
+include "some/path/to/file";
+import std::io::{File, read_file};
+
+// FEATURE: constant values
+const z = 10;
+
+// FEATURE: Normal statements would be expressions expression. 
+// FEATURE: The braces in this case would also be optional.
+// `a` == 2 as blocks would return the last evaluated
+var a = if      (1 >= 3) { 0 }
+        else if (1 >= 2) { 1 }
+        else             { 2 };
+
+// when i == 5, then b == 1000
+// FEATURE: variable++
+// FEATURE: ++variable
+var b = for (var i = 0; i < 10; i++) {
+    if (i == 5) { 1000; break }
+}
+
+// FEATURE: Cond. Idk, looks cleaner
+const y = cond (pred_one) { 1 }
+               (pred_two) { 2 }
+               else       { 3 };
+
+
+
+// FEATURE: Anonymous Functions with optional braces.
+var c = fn (a, b) => a + b;
+
+struct Expr {};
+
+
+fun Literal(value) {
+    var literal   = Expr();
+    literal.kind  = "Literal";
+    literal.value = value;
+    return literal;
+}
+
+const literal?        = fn (literal_expr) => literal_expr.kind == "Literal";
+const literal_resolve = fn (literal_expr) => null;
+const literal_eval    = fn (literal_expr) => literal_expr.value;
+// Or you could just do it the normal way with a function.
+fun literal_dbg(literal_expr)     { f"Literal({literal_expr.value})"}
+
+
+fun main() {
+
+    const lit_expr = Literal(100);
+
+    print(literal?(lit_expr)); // true
+
+    literal_dbg(lit_expr); // 100
+
+}
+

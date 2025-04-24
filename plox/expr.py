@@ -6,6 +6,24 @@ class Expr:
     pass
 
 @dataclass
+class This(Expr):
+    keyword: Token
+
+    def __hash__(self):
+        return hash(f"__builtin_this{self.keyword.line}")
+
+@dataclass
+class Set(Expr):
+    object: object
+    name  : Token
+    value : Expr
+
+@dataclass
+class Get(Expr):
+    object: object
+    name  : Token
+
+@dataclass
 class Call(Expr):
     callee: Expr
     paren    : Token
@@ -34,6 +52,9 @@ class Assign(Expr):
 @dataclass
 class Variable(Expr):
     name: Token
+
+    def __repr__(self):
+        return f"Variable({self.name.lexeme})"
 
     def __hash__(self):
         return hash(f"__builtin_variable.{self.name.line}")

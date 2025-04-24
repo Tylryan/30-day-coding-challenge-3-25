@@ -21,6 +21,8 @@ public class Environment {
         values.put(name, value);
     }
 
+    // Given a distance from the current environment, a name, and a value,
+    // assign the expression to the given name k environments back.
     void assignAt(int distance, Token name, Object value){
         ancestor(distance).values.put(name.lexeme, value);
     }
@@ -46,10 +48,13 @@ public class Environment {
                 String.format("Undefined variable '%s'.", name.lexeme));
     }
 
+    // Given a variable name and a distance, return a variable
+    // with that name located in an environment k hops back.
     Object getAt(int distance, String name){
         return ancestor(distance).values.get(name);
     }
 
+    // Return the environment k hops back.
     Environment ancestor(int distance) {
         Environment environment = this;
         for (int i = 0; i < distance; i++ ){

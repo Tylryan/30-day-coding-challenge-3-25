@@ -1,14 +1,18 @@
+from __future__ import annotations
 from pprint import pprint
 
 from environment import Environment
 from expr import *
 from stmt import *
 from tokens import Token, TokenType
+from resolver import resolveStatements, Resolver
 import libffi
 
 class Interp:
     globals    : Environment
     environment: Environment
+    # From resolver
+    locals     : dict[Expr, int]
 
     def __init__(self):
         self.environment = Environment(None)
@@ -27,10 +31,65 @@ class LoxReturn(RuntimeError):
     def __init__(self, value: object):
         self.value = value
 
+
+class LoxInstance:
+    klass: LoxClass
+    fields: dict[str, object]
+
+    def __init__(self, klass: LoxClass):
+        self.klass  = klass
+        self.fields = {}
+
+    def __repr__(self):
+        return f"<{self.klass.name} instance>"
+
+    def get(self, name: Token) -> object:
+        if name.lexeme in self.fields:
+            return self.fields.get(name.lexeme)
+        
+        method: LoxFunction = self.klass.findMethod(name.lexeme)
+        if method: 
+            return method.bind(self)
+
+        print(f"[interpreter-error] Undefined property `{name.lexeme}`")
+        exit(1)
+
+    def set(self, name: Token, value: object) -> None:
+        self.fields[name.lexeme] = value
+
+
+@dataclass
+class LoxClass(LoxCallable):
+    name: str
+    methods: dict[str, LoxFunction]
+
+    def __repr__(self):
+        return f"<class `{self.name}`>"
+
+    def arity(self) -> int:
+        return 0
+
+    def call(self, interp: Interp, arguments: list[object]) -> object:
+        instance: LoxInstance = LoxInstance(self)
+        return instance
+
+    def findMethod(self, name: str) -> LoxFunction:
+        if name in self.methods.keys():
+            return self.methods[name]
+
+        return None
+
 def interpret(stmts: list[Stmt]) -> None:
     interp = Interp()
     interp.globals.define("print", libffi.LoxPrint())
 
+
+    resolver = Resolver()
+
+    resolveStatements(resolver, stmts)
+
+    interp.locals = resolver.resolutions.copy()
+    pprint(interp.locals)
 
     for stmt in stmts:
         evaluate(interp, stmt)
@@ -68,11 +127,52 @@ def evaluate(interp: Interp, stmt: Stmt) -> object:
         return eval_fun_stmt(interp, stmt)
     elif isinstance(stmt, Call):
         return eval_call_expr(interp, stmt)
+    elif isinstance(stmt, Class):
+        return eval_class_stmt(interp, stmt)
+    elif isinstance(stmt, Get):
+        return eval_get_expr(interp, stmt)
+    elif isinstance(stmt, Set):
+        return eval_set_expr(interp, stmt)
+    elif isinstance(stmt, This):
+        return eval_this_expr(interp, stmt)
     
     else:
         pprint(f"[interpreter-error] unimplemented expression:`{stmt}`")
         exit(1)
 
+
+def eval_set_expr(interp: Interp, stmt: Set) -> object:
+    object: object = evaluate(interp, stmt.object)
+    if not isinstance(object, LoxInstance):
+        print("[interpreter-error] Only instances have fields.")
+        exit(1)
+
+    value: object = evaluate(interp, stmt.value)
+    object.set(stmt.name, value)
+    return value
+
+def eval_get_expr(interp: Interp, stmt: Get) -> object:
+    object: object = evaluate(interp, stmt.object)
+    if isinstance(object, LoxInstance):
+        return object.get(stmt.name)
+
+    print(f"[interpreter-error] only instances have properties: `{object}`")
+    exit(1)
+
+def eval_class_stmt(interp: Interp, stmt: Class) -> object:
+    interp.environment.define(stmt.name.lexeme, None)
+
+    methods: dict[str, LoxFunction] = {}
+    for method in stmt.methods:
+        fun: LoxFunction = LoxFunction(method, interp.environment)
+        methods[method.name.lexeme] = fun
+
+    klass: LoxClass = LoxClass(stmt.name.lexeme, methods)
+    interp.environment.assign(stmt.name, klass)
+    return None
+
+def eval_this_expr(interp: Interp, expr: This)  -> object:
+    return interp.environment.get(expr.keyword)
 
 def eval_call_expr(interp: Interp, expr: Call) -> object:
     callee: object = evaluate(interp, expr.callee)
@@ -181,7 +281,7 @@ def eval_binary(interp: Interp, expr: Binary) -> object:
         case TokenType.LESS_EQUAL:
             return float(left) <= float(right)
         case TokenType.EQUAL_EQUAL:
-            return float(left) == float(right)
+            return left == right
         case TokenType.BANG_EQUAL:
             return float(left) != float(right)
         case TokenType.MINUS:
@@ -239,7 +339,14 @@ class LoxFunction(LoxCallable):
 
         return None
 
+    def bind(self, instance: LoxInstance) -> LoxFunction:
+        environment: Environment = Environment(self.closure)
+        environment.define("this", instance)
+        return LoxFunction(self.declaration, environment)
+        
+
 # ------------- Helpers
+
 def stringify(obj: object) -> str:
     if obj is None:
         return "nil"

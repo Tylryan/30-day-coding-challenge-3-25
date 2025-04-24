@@ -11,8 +11,52 @@ abstract public class Expr {
         R visitLiteralExpr(Literal expr);
         R visitUnaryExpr(Unary expr);
         R visitVariableExpr(Variable expr);
+        R visitGetExpr(Get expr);
+        R visitSetExpr(Set expr);
+        R visitThisExpr(This expr);
     }
 
+    static class This extends Expr {
+        final Token keyword;
+
+        This(Token keyword) {
+            this.keyword = keyword;
+        }
+
+        <R> R accept(Visitor<R> visitor) {
+            return visitor.visitThisExpr(this);
+        }
+    }
+
+    static class Set extends Expr {
+        final Expr object;
+        final Token name;
+        final Expr value;
+
+        Set(Expr object, Token name, Expr value) {
+            this.object = object;
+            this.name = name;
+            this.value = value;
+        }
+
+        <R> R accept(Visitor<R> visitor) {
+            return visitor.visitSetExpr(this);
+        }
+    }
+
+    static class Get extends Expr {
+        final Expr object;
+        final Token name;
+
+        Get(Expr object, Token name) {
+            this.object = object;
+            this.name   = name;
+        }
+
+        <R> R accept(Visitor<R> visitor) {
+            return visitor.visitGetExpr(this);
+        }
+    }
     static class Call extends Expr {
         final Expr callee;
         final Token paren;
@@ -56,6 +100,11 @@ abstract public class Expr {
         <R> R accept(Visitor<R> visitor) {
             return visitor.visitAssignExpr(this);
         }
+
+        @Override
+        public String toString() {
+            return String.format("Assign(%s, %s)", name.lexeme, value);
+        }
     }
     static class Variable extends Expr {
         final Token name;
@@ -66,6 +115,11 @@ abstract public class Expr {
 
         <R> R accept(Visitor<R> visitor) {
             return visitor.visitVariableExpr(this);
+        }
+
+        @Override
+        public String toString() {
+            return String.format("Variable(%s)", name.lexeme);
         }
     }
     static class Binary extends Expr {
@@ -84,9 +138,9 @@ abstract public class Expr {
         }
 
         public String toString() {
-            return String.format("Binary(%s, %s, %s)",
+            return String.format("Binary(%s, Token(%s), %s)",
                     left,
-                    operator,
+                    operator.lexeme,
                     right);
         }
     }
