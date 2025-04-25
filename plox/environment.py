@@ -27,6 +27,19 @@ class Environment:
         exit(1)
 
 
+    # quick fix
+    def gets(self, name: str) -> object:
+        assert isinstance(name, str)
+
+        if name in self.values.keys():
+            return self.values.get(name)
+
+        if self.enclosing is not None:
+            return self.enclosing.gets(name)
+
+        print(f"[environment-error] undefined variable: `{name}`")
+        exit(1)
+
     def get(self, name: Token) -> object:
         assert isinstance(name, Token)
 

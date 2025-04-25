@@ -1,11 +1,15 @@
 
-class Cake {
-    taste() {
-        var adjective = "delicious";
-        print "The " + this.flavor + " cake is " + adjective + "!";
+
+class Person {
+    init(name, age) {
+        this.name = name;
+        this.age = age;
+        return;
     }
 }
 
-var cake = Cake();
-cake.flavor = "German Chocolate";
-cake.taste();
+
+var tyler = Person("Tyler", 28);
+
+print tyler.name;
+print tyler.age;

@@ -7,16 +7,23 @@ class FunctionType(Enum):
     NONE     = auto()
     FUNCTION = auto()
     METHOD   = auto()
+    INITIALIZER = auto()
+
+class ClassType(Enum):
+    NONE =auto()
+    CLASS=auto()
 
 class Resolver:
     scopes         : list[dict[str, bool]]
     currentFunction: FunctionType
     resolutions    : dict[Expr, int]
+    currentClass   : ClassType
 
     def __init__(self):
         self.scopes          = []
         self.currentFunction = FunctionType.NONE
         self.resolutions     = {}
+        self.currentClass    = ClassType.NONE
     
 
 def resolve(resolver: Resolver, stmt: Stmt | Expr) -> None:
@@ -140,6 +147,10 @@ def resolveGetExpr(resolver: Resolver, expr: Get) -> None:
     return None
 
 def resolveClassStmt(resolver: Resolver, stmt: Class) -> None:
+
+    enclosingClass: ClassType = resolver.currentClass
+    resolver.currentClass = ClassType.CLASS
+
     declare(resolver, stmt.name)
     define(resolver, stmt.name)
 
@@ -148,12 +159,18 @@ def resolveClassStmt(resolver: Resolver, stmt: Class) -> None:
 
     for method in stmt.methods:
         declaration: FunctionType = FunctionType.METHOD
+        if method.name.lexeme == "init":
+            declaration = FunctionType.INITIALIZER
         resolveFunction(resolver, method, declaration)
 
     endScope(resolver)
+    resolver.currentClass = enclosingClass
     return None
 
 def resolveThisExpr(resolver: Resolver, expr: This) -> None:
+    if resolver.currentClass == ClassType.NONE:
+        print("[resolver-error] Can't use 'this' outside of a class.")
+        exit(1)
     resolveLocal(resolver, expr, expr.keyword)
     
 def resolveFunctionStmt(resolver: Resolver, stmt: Function) -> None:
@@ -218,6 +235,8 @@ def resolveReturnStmt(resolver: Resolver, stmt: Return) -> None:
         exit(1)
 
     if stmt.value:
+        if resolver.currentFunction == FunctionType.INITIALIZER:
+            print(f"[resolver-error: line {stmt.keyword.line}] Can't return a value from an initializer.")
         resolve(resolver, stmt.value)
 
     return None

@@ -67,10 +67,17 @@ class LoxClass(LoxCallable):
         return f"<class `{self.name}`>"
 
     def arity(self) -> int:
-        return 0
+        initializer: LoxFunction = self.findMethod("init")
+        if initializer is None:
+            return 0
+        return initializer.arity()
 
     def call(self, interp: Interp, arguments: list[object]) -> object:
         instance: LoxInstance = LoxInstance(self)
+
+        initializer: LoxFunction = self.findMethod("init")
+        if initializer:
+            initializer.bind(instance).call(interp, arguments)
         return instance
 
     def findMethod(self, name: str) -> LoxFunction:
@@ -164,7 +171,9 @@ def eval_class_stmt(interp: Interp, stmt: Class) -> object:
 
     methods: dict[str, LoxFunction] = {}
     for method in stmt.methods:
-        fun: LoxFunction = LoxFunction(method, interp.environment)
+        fun: LoxFunction = LoxFunction(method, 
+                                       interp.environment,
+                                       method.name.lexeme == "init")
         methods[method.name.lexeme] = fun
 
     klass: LoxClass = LoxClass(stmt.name.lexeme, methods)
@@ -192,7 +201,9 @@ def eval_call_expr(interp: Interp, expr: Call) -> object:
     return callee.call(interp, arguments)
 
 def eval_fun_stmt(interp: Interp, stmt: Function) -> None:
-    fun: LoxFunction = LoxFunction(stmt, interp.environment)
+    fun: LoxFunction = LoxFunction(stmt, 
+                                   interp.environment, 
+                                   False)
     interp.environment.define(stmt.name.lexeme, fun)
     return None
 
@@ -319,6 +330,7 @@ def eval_literal(interp: Interp, expr: Literal) -> object:
 class LoxFunction(LoxCallable):
     declaration  : Function
     closure      : Environment
+    isInitializer: bool
 
     def arity(self) -> int:
         return len(self.declaration.params)
@@ -335,14 +347,22 @@ class LoxFunction(LoxCallable):
                           self.declaration.body,
                           environment)
         except LoxReturn as rv:
+            if self.isInitializer:
+                return self.closure.gets("this")
             return rv.value
+
+        # If the function name is "init", return
+        # the class instance it refers to.
+        if self.isInitializer:
+            return self.closure.gets("this")
 
         return None
 
     def bind(self, instance: LoxInstance) -> LoxFunction:
         environment: Environment = Environment(self.closure)
         environment.define("this", instance)
-        return LoxFunction(self.declaration, environment)
+        return LoxFunction(self.declaration, environment,
+                           self.isInitializer)
         
 
 # ------------- Helpers
